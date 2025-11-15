@@ -52,7 +52,7 @@ struct HeartRateView: View {
     private func scanningView(_ sensors: [DiscoveredSensor]) -> some View {
         if sensors.isEmpty {
             ProgressView()
-            Text("Searching for a sensors...")
+            Text("Searching for sensors...")
                 .font(.caption)
                 .foregroundColor(.gray)
         } else {
