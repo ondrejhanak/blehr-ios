@@ -77,27 +77,27 @@ struct HeartRateView: View {
 #if DEBUG
 #Preview("connected") {
     let info = SensorInfo(id: UUID(), bpm: 123, name: "Preview Sensor", timestamp: .now)
-    let service = SensorServiceMock(state: .connected(info))
+    let service = PreviewSensorService(state: .connected(info))
     return HeartRateView(viewModel: HeartRateViewModel(sensorService: service))
 }
 
 #Preview("disabled") {
-    let service = SensorServiceMock(state: .disabled)
+    let service = PreviewSensorService(state: .disabled)
     return HeartRateView(viewModel: HeartRateViewModel(sensorService: service))
 }
 
 #Preview("idle") {
-    let service = SensorServiceMock(state: .idle)
+    let service = PreviewSensorService(state: .idle)
     return HeartRateView(viewModel: HeartRateViewModel(sensorService: service))
 }
 
 #Preview("scanning - empty") {
-    let service = SensorServiceMock(state: .scanning([]))
+    let service = PreviewSensorService(state: .scanning([]))
     return HeartRateView(viewModel: HeartRateViewModel(sensorService: service))
 }
 
 #Preview("connecting") {
-    let service = SensorServiceMock(state: .connecting)
+    let service = PreviewSensorService(state: .connecting)
     return HeartRateView(viewModel: HeartRateViewModel(sensorService: service))
 }
 #endif

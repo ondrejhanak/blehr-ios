@@ -168,8 +168,7 @@ extension SensorService: CBPeripheralDelegate {
 }
 
 #if DEBUG
-final class SensorServiceMock: SensorServiceType {
-
+final class PreviewSensorService: SensorServiceType {
     private let stateSubject: CurrentValueSubject<SensorState, Never>
 
     var state: AnyPublisher<SensorState, Never> {
