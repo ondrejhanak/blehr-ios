@@ -24,7 +24,7 @@ final class SensorService: NSObject, SensorServiceType {
     private let heartRateMeasurementUUID = CBUUID(string: "0x2A37")
     private let scanningListSubject = PassthroughSubject<[DiscoveredSensor], Never>()
     private let stateSubject = PassthroughSubject<SensorState, Never>()
-    private var centralManager: CBCentralManager!
+    private var centralManager: BluetoothServiceType
     private var heartRatePeripheral: CBPeripheral?
     private var discovered: [UUID: (sensor: DiscoveredSensor, lastSeen: Date)] = [:]
     private var cleanupCancellable: AnyCancellable?
@@ -35,9 +35,10 @@ final class SensorService: NSObject, SensorServiceType {
 
     // MARK: - Lifecycle
 
-    override init() {
+    init(centralManager: BluetoothServiceType) {
+        self.centralManager = centralManager
         super.init()
-        centralManager = CBCentralManager(delegate: self, queue: nil)
+        centralManager.delegate = self
 
         scanningListSubject
             .throttle(for: .milliseconds(1000), scheduler: RunLoop.main, latest: true) // throttle rapid refresh

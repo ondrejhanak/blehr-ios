@@ -18,7 +18,7 @@ final class HeartRateViewModel: ObservableObject {
 
     // MARK: - Lifecycle
 
-    init(sensorService: SensorServiceType = SensorService()) {
+    init(sensorService: SensorServiceType) {
         self.sensorService = sensorService
         setupObservation()
     }
