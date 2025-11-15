@@ -9,11 +9,10 @@ import SwiftUI
 
 @main
 struct HeartRateApp: App {
-    @StateObject private var viewModel = HeartRateViewModel()
-
     var body: some Scene {
         WindowGroup {
             if isProduction {
+                let viewModel = HeartRateViewModel()
                 HeartRateView(viewModel: viewModel)
             }
         }

@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct HeartRateView: View {
-    @ObservedObject var viewModel: HeartRateViewModel
+    @StateObject var viewModel: HeartRateViewModel
 
     var body: some View {
         VStack(spacing: 30) {
