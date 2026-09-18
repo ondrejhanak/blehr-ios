@@ -156,8 +156,7 @@ extension SensorService: CBPeripheralDelegate {
     }
 
     func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
-        guard let data = characteristic.value else { return }
-        let bpm = HeartRateParser.parse(data)
+        guard let data = characteristic.value, let bpm = HeartRateParser.parse(data) else { return }
         let info = SensorInfo(
             id: peripheral.identifier,
             bpm: bpm,
