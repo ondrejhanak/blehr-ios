@@ -36,7 +36,8 @@ final class SensorService: NSObject, SensorServiceType {
     private var centralManager: BluetoothServiceType
     private var heartRatePeripheral: CBPeripheral?
     private var registry = DiscoveredSensorRegistry()
-    private var cleanupCancellable: AnyCancellable?
+    private var isPoweredOn = false
+    private var pruningCancellable: AnyCancellable?
 
     var state: AnyPublisher<SensorState, Never> {
         stateSubject.eraseToAnyPublisher()
@@ -72,8 +73,7 @@ final class SensorService: NSObject, SensorServiceType {
             scan()
             return
         }
-        cleanupCancellable?.cancel()
-        centralManager.stopScan()
+        stopScanning()
         stateSubject.send(.connecting)
         peripheral.delegate = self
         heartRatePeripheral = peripheral
@@ -88,16 +88,24 @@ final class SensorService: NSObject, SensorServiceType {
     // MARK: - Private
 
     private func scan() {
+        // Reachable from disconnect callbacks, which can arrive before the central reports
+        // that it lost power.
+        guard isPoweredOn else { return }
+        stopScanning()
         registry.removeAll()
         scanningListSubject.send(registry.sensors)
-        centralManager.stopScan()
-        cleanupCancellable?.cancel()
         centralManager.scanForPeripherals(withServices: [heartRateServiceUUID], options: [CBCentralManagerScanOptionAllowDuplicatesKey: true])
-        cleanupCancellable = Timer.publish(every: configuration.discoveryTimeout, on: .main, in: .common)
+        pruningCancellable = Timer.publish(every: configuration.discoveryTimeout, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
                 self?.pruneStaleSensors()
             }
+    }
+
+    private func stopScanning() {
+        pruningCancellable?.cancel()
+        pruningCancellable = nil
+        centralManager.stopScan()
     }
 
     private func pruneStaleSensors() {
@@ -114,7 +122,9 @@ final class SensorService: NSObject, SensorServiceType {
 
 extension SensorService: CBCentralManagerDelegate {
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
-        guard central.state == .poweredOn else {
+        isPoweredOn = central.state == .poweredOn
+        guard isPoweredOn else {
+            stopScanning()
             releasePeripheral()
             stateSubject.send(.disabled)
             return
