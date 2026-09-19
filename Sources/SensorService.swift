@@ -66,17 +66,18 @@ final class SensorService: NSObject, SensorServiceType {
     // MARK: - Methods
 
     func connect(id: DiscoveredSensor.ID) {
-        stateSubject.send(.connecting)
-        cleanupCancellable?.cancel()
-        let peripherals = centralManager.retrievePeripherals(withIdentifiers: [id])
-        if let peripheral = peripherals.first {
-            peripheral.delegate = self
-            centralManager.stopScan()
-            centralManager.connect(peripheral, options: nil)
-            heartRatePeripheral = peripheral
-        } else {
-            stateSubject.send(.idle)
+        // Resolve the peripheral before tearing down the scan, so a failed lookup can
+        // leave discovery running.
+        guard let peripheral = centralManager.retrievePeripherals(withIdentifiers: [id]).first else {
+            scan()
+            return
         }
+        cleanupCancellable?.cancel()
+        centralManager.stopScan()
+        stateSubject.send(.connecting)
+        peripheral.delegate = self
+        heartRatePeripheral = peripheral
+        centralManager.connect(peripheral, options: nil)
     }
 
     func disconnect() {
