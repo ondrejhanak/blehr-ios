@@ -45,9 +45,6 @@ final class HeartRateViewModel: ObservableObject {
             .receive(on: RunLoop.main)
             .sink { [weak self] state in
                 self?.state = state
-                if state == .idle {
-                    self?.sensorService.scan()
-                }
             }
             .store(in: &cancellables)
     }

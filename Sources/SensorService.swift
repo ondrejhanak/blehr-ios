@@ -11,7 +11,6 @@ import Combine
 protocol SensorServiceType: AnyObject {
     var state: AnyPublisher<SensorState, Never> { get }
 
-    func scan()
     func connect(id: DiscoveredSensor.ID)
     func disconnect()
 }
@@ -65,19 +64,6 @@ final class SensorService: NSObject, SensorServiceType {
 
     // MARK: - Methods
 
-    func scan() {
-        registry.removeAll()
-        scanningListSubject.send(registry.sensors)
-        centralManager.stopScan()
-        cleanupCancellable?.cancel()
-        centralManager.scanForPeripherals(withServices: [heartRateServiceUUID], options: [CBCentralManagerScanOptionAllowDuplicatesKey: true])
-        cleanupCancellable = Timer.publish(every: configuration.discoveryTimeout, on: .main, in: .common)
-            .autoconnect()
-            .sink { [weak self] _ in
-                self?.pruneStaleSensors()
-            }
-    }
-
     func connect(id: DiscoveredSensor.ID) {
         stateSubject.send(.connecting)
         cleanupCancellable?.cancel()
@@ -99,6 +85,19 @@ final class SensorService: NSObject, SensorServiceType {
 
     // MARK: - Private
 
+    private func scan() {
+        registry.removeAll()
+        scanningListSubject.send(registry.sensors)
+        centralManager.stopScan()
+        cleanupCancellable?.cancel()
+        centralManager.scanForPeripherals(withServices: [heartRateServiceUUID], options: [CBCentralManagerScanOptionAllowDuplicatesKey: true])
+        cleanupCancellable = Timer.publish(every: configuration.discoveryTimeout, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                self?.pruneStaleSensors()
+            }
+    }
+
     private func pruneStaleSensors() {
         guard registry.prune(olderThan: configuration.discoveryTimeout, at: now()) else { return }
         scanningListSubject.send(registry.sensors)
@@ -107,11 +106,11 @@ final class SensorService: NSObject, SensorServiceType {
 
 extension SensorService: CBCentralManagerDelegate {
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
-        if central.state == .poweredOn {
-            stateSubject.send(.idle)
-        } else {
+        guard central.state == .poweredOn else {
             stateSubject.send(.disabled)
+            return
         }
+        scan()
     }
 
     func centralManager(
@@ -119,7 +118,7 @@ extension SensorService: CBCentralManagerDelegate {
         didDisconnectPeripheral peripheral: CBPeripheral,
         error: (any Error)?
     ) {
-        stateSubject.send(.idle)
+        scan()
     }
 
     func centralManager(
@@ -145,7 +144,7 @@ extension SensorService: CBCentralManagerDelegate {
     }
 
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: (any Error)?) {
-        stateSubject.send(.idle)
+        scan()
     }
 }
 
@@ -186,7 +185,6 @@ final class PreviewSensorService: SensorServiceType {
         stateSubject = CurrentValueSubject(state)
     }
 
-    func scan() {}
     func connect(id: UUID) {}
     func disconnect() {}
 }
