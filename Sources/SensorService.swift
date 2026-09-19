@@ -104,11 +104,18 @@ final class SensorService: NSObject, SensorServiceType {
         guard registry.prune(olderThan: configuration.discoveryTimeout, at: now()) else { return }
         scanningListSubject.send(registry.sensors)
     }
+
+    private func releasePeripheral() {
+        // Clearing the delegate stops late notifications from the old peripheral.
+        heartRatePeripheral?.delegate = nil
+        heartRatePeripheral = nil
+    }
 }
 
 extension SensorService: CBCentralManagerDelegate {
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         guard central.state == .poweredOn else {
+            releasePeripheral()
             stateSubject.send(.disabled)
             return
         }
@@ -120,6 +127,7 @@ extension SensorService: CBCentralManagerDelegate {
         didDisconnectPeripheral peripheral: CBPeripheral,
         error: (any Error)?
     ) {
+        releasePeripheral()
         scan()
     }
 
@@ -146,6 +154,7 @@ extension SensorService: CBCentralManagerDelegate {
     }
 
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: (any Error)?) {
+        releasePeripheral()
         scan()
     }
 }
