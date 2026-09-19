@@ -26,7 +26,7 @@ final class SensorService: NSObject, SensorServiceType {
     private let stateSubject = PassthroughSubject<SensorState, Never>()
     private var centralManager: BluetoothServiceType
     private var heartRatePeripheral: CBPeripheral?
-    private var discovered: [UUID: (sensor: DiscoveredSensor, lastSeen: Date)] = [:]
+    private var registry = DiscoveredSensorRegistry()
     private var cleanupCancellable: AnyCancellable?
 
     var state: AnyPublisher<SensorState, Never> {
@@ -51,8 +51,8 @@ final class SensorService: NSObject, SensorServiceType {
     // MARK: - Methods
 
     func scan() {
-        discovered.removeAll()
-        publishScanningList()
+        registry.removeAll()
+        scanningListSubject.send(registry.sensors)
         centralManager.stopScan()
         cleanupCancellable?.cancel()
         centralManager.scanForPeripherals(withServices: [heartRateServiceUUID], options: [CBCentralManagerScanOptionAllowDuplicatesKey: true])
@@ -85,16 +85,8 @@ final class SensorService: NSObject, SensorServiceType {
     // MARK: - Private
 
     private func pruneStaleSensors() {
-        let now = Date()
-        discovered = discovered.filter { now.timeIntervalSince($0.value.lastSeen) <= sensorDiscoveryTimeout }
-        publishScanningList()
-    }
-
-    private func publishScanningList() {
-        let sensors = discovered.values
-            .map { $0.sensor }
-            .sorted(by: { $0.rssi > $1.rssi })
-        scanningListSubject.send(sensors)
+        guard registry.prune(olderThan: sensorDiscoveryTimeout, at: Date()) else { return }
+        scanningListSubject.send(registry.sensors)
     }
 }
 
@@ -124,13 +116,13 @@ extension SensorService: CBCentralManagerDelegate {
         guard let isConnectable = advertisementData[CBAdvertisementDataIsConnectable] as? Bool, isConnectable else {
             return
         }
-        let model = DiscoveredSensor(
+        let sensor = DiscoveredSensor(
             id: peripheral.identifier,
             name: peripheral.name,
             rssi: RSSI.intValue
         )
-        discovered[peripheral.identifier] = (sensor: model, lastSeen: Date())
-        publishScanningList()
+        guard registry.record(sensor, at: Date()) else { return }
+        scanningListSubject.send(registry.sensors)
     }
 
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
