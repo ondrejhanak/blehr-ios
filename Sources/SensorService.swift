@@ -37,6 +37,7 @@ final class SensorService: NSObject, SensorServiceType {
     private var heartRatePeripheral: CBPeripheral?
     private var registry = DiscoveredSensorRegistry()
     private var isPoweredOn = false
+    private var isScanning = false
     private var pruningCancellable: AnyCancellable?
 
     var state: AnyPublisher<SensorState, Never> {
@@ -59,7 +60,10 @@ final class SensorService: NSObject, SensorServiceType {
         scanningListSubject
             .throttle(for: .seconds(configuration.listRefreshInterval), scheduler: RunLoop.main, latest: true)
             .sink { [weak self] sensors in
-                self?.stateSubject.send(.scanning(sensors))
+                // A throttled emission can land after the user already picked a sensor,
+                // where publishing it would clobber `.connecting`.
+                guard let self, self.isScanning else { return }
+                self.stateSubject.send(.scanning(sensors))
             }
             .store(in: &cancellables)
     }
@@ -93,16 +97,19 @@ final class SensorService: NSObject, SensorServiceType {
         guard isPoweredOn else { return }
         stopScanning()
         registry.removeAll()
-        scanningListSubject.send(registry.sensors)
+
+        isScanning = true
         centralManager.scanForPeripherals(withServices: [heartRateServiceUUID], options: [CBCentralManagerScanOptionAllowDuplicatesKey: true])
         pruningCancellable = Timer.publish(every: configuration.discoveryTimeout, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
                 self?.pruneStaleSensors()
             }
+        scanningListSubject.send(registry.sensors)
     }
 
     private func stopScanning() {
+        isScanning = false
         pruningCancellable?.cancel()
         pruningCancellable = nil
         centralManager.stopScan()
