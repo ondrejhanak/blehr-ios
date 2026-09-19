@@ -13,7 +13,7 @@ final class HeartRateViewModel: ObservableObject {
     private var sensorService: SensorServiceType
     private var cancellables = Set<AnyCancellable>()
 
-    @Published var state: SensorState = .idle
+    @Published var state: SensorState = .starting
 
     // MARK: - Lifecycle
 

@@ -21,8 +21,8 @@ struct DiscoveredSensor: Identifiable, Equatable {
 }
 
 enum SensorState: Equatable {
+    case starting
     case disabled
-    case idle
     case scanning([DiscoveredSensor])
     case connecting
     case connected(SensorInfo)

@@ -15,10 +15,10 @@ struct HeartRateView: View {
             Text("Heart Rate")
                 .font(.title)
             switch viewModel.state {
+            case .starting:
+                EmptyView() // nothing reported yet
             case .disabled:
                 disabledView
-            case .idle:
-                EmptyView() // no visual representation
             case let .scanning(sensors):
                 scanningView(sensors)
             case .connecting:
@@ -86,8 +86,8 @@ struct HeartRateView: View {
     return HeartRateView(viewModel: HeartRateViewModel(sensorService: service))
 }
 
-#Preview("idle") {
-    let service = PreviewSensorService(state: .idle)
+#Preview("starting") {
+    let service = PreviewSensorService(state: .starting)
     return HeartRateView(viewModel: HeartRateViewModel(sensorService: service))
 }
 

@@ -32,7 +32,7 @@ final class SensorService: NSObject, SensorServiceType {
     private let heartRateServiceUUID = CBUUID(string: "0x180D")
     private let heartRateMeasurementUUID = CBUUID(string: "0x2A37")
     private let scanningListSubject = PassthroughSubject<[DiscoveredSensor], Never>()
-    private let stateSubject = CurrentValueSubject<SensorState, Never>(.idle)
+    private let stateSubject = CurrentValueSubject<SensorState, Never>(.starting)
     private var centralManager: BluetoothServiceType
     private var heartRatePeripheral: CBPeripheral?
     private var registry = DiscoveredSensorRegistry()
