@@ -16,9 +16,18 @@ protocol SensorServiceType: AnyObject {
     func disconnect()
 }
 
-final class SensorService: NSObject, SensorServiceType {
-    let sensorDiscoveryTimeout: TimeInterval = 5
+struct SensorConfiguration {
+    /// How long a sensor stays listed after it was last heard from.
+    var discoveryTimeout: TimeInterval = 5
+    /// Upper bound on how often the scanning list is republished.
+    var listRefreshInterval: TimeInterval = 1
 
+    static let `default`: Self = .init()
+}
+
+final class SensorService: NSObject, SensorServiceType {
+    private let configuration: SensorConfiguration
+    private let now: () -> Date
     private var cancellables = Set<AnyCancellable>()
     private let heartRateServiceUUID = CBUUID(string: "0x180D")
     private let heartRateMeasurementUUID = CBUUID(string: "0x2A37")
@@ -35,13 +44,19 @@ final class SensorService: NSObject, SensorServiceType {
 
     // MARK: - Lifecycle
 
-    init(centralManager: BluetoothServiceType) {
+    init(
+        centralManager: BluetoothServiceType,
+        configuration: SensorConfiguration = .default,
+        now: @escaping () -> Date = Date.init
+    ) {
         self.centralManager = centralManager
+        self.configuration = configuration
+        self.now = now
         super.init()
         centralManager.delegate = self
 
         scanningListSubject
-            .throttle(for: .milliseconds(1000), scheduler: RunLoop.main, latest: true) // throttle rapid refresh
+            .throttle(for: .seconds(configuration.listRefreshInterval), scheduler: RunLoop.main, latest: true)
             .sink { [weak self] sensors in
                 self?.stateSubject.send(.scanning(sensors))
             }
@@ -56,7 +71,7 @@ final class SensorService: NSObject, SensorServiceType {
         centralManager.stopScan()
         cleanupCancellable?.cancel()
         centralManager.scanForPeripherals(withServices: [heartRateServiceUUID], options: [CBCentralManagerScanOptionAllowDuplicatesKey: true])
-        cleanupCancellable = Timer.publish(every: sensorDiscoveryTimeout, on: .main, in: .common)
+        cleanupCancellable = Timer.publish(every: configuration.discoveryTimeout, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
                 self?.pruneStaleSensors()
@@ -85,7 +100,7 @@ final class SensorService: NSObject, SensorServiceType {
     // MARK: - Private
 
     private func pruneStaleSensors() {
-        guard registry.prune(olderThan: sensorDiscoveryTimeout, at: Date()) else { return }
+        guard registry.prune(olderThan: configuration.discoveryTimeout, at: now()) else { return }
         scanningListSubject.send(registry.sensors)
     }
 }
@@ -121,7 +136,7 @@ extension SensorService: CBCentralManagerDelegate {
             name: peripheral.name,
             rssi: RSSI.intValue
         )
-        guard registry.record(sensor, at: Date()) else { return }
+        guard registry.record(sensor, at: now()) else { return }
         scanningListSubject.send(registry.sensors)
     }
 
@@ -153,7 +168,7 @@ extension SensorService: CBPeripheralDelegate {
             id: peripheral.identifier,
             bpm: bpm,
             name: peripheral.name,
-            timestamp: .now
+            timestamp: now()
         )
         stateSubject.send(.connected(info))
     }
