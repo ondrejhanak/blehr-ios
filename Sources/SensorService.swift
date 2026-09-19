@@ -99,13 +99,14 @@ final class SensorService: NSObject, SensorServiceType {
         registry.removeAll()
 
         isScanning = true
+        // Entering the scanning state is not a list refresh, so it skips the throttle.
+        stateSubject.send(.scanning([]))
         centralManager.scanForPeripherals(withServices: [heartRateServiceUUID], options: [CBCentralManagerScanOptionAllowDuplicatesKey: true])
         pruningCancellable = Timer.publish(every: configuration.discoveryTimeout, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
                 self?.pruneStaleSensors()
             }
-        scanningListSubject.send(registry.sensors)
     }
 
     private func stopScanning() {
