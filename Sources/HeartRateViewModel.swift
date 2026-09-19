@@ -14,7 +14,6 @@ final class HeartRateViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     @Published var state: SensorState = .idle
-    @Published var heartbeatPulse = false
 
     // MARK: - Lifecycle
 
@@ -48,9 +47,6 @@ final class HeartRateViewModel: ObservableObject {
                 self?.state = state
                 if state == .idle {
                     self?.sensorService.scan()
-                }
-                if case .connected = state {
-                    self?.heartbeatPulse.toggle()
                 }
             }
             .store(in: &cancellables)
