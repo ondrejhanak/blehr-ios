@@ -9,6 +9,7 @@ import CoreBluetooth
 import Combine
 
 protocol SensorServiceType: AnyObject {
+    /// Current state, replayed to new subscribers.
     var state: AnyPublisher<SensorState, Never> { get }
 
     func connect(id: DiscoveredSensor.ID)
@@ -31,7 +32,7 @@ final class SensorService: NSObject, SensorServiceType {
     private let heartRateServiceUUID = CBUUID(string: "0x180D")
     private let heartRateMeasurementUUID = CBUUID(string: "0x2A37")
     private let scanningListSubject = PassthroughSubject<[DiscoveredSensor], Never>()
-    private let stateSubject = PassthroughSubject<SensorState, Never>()
+    private let stateSubject = CurrentValueSubject<SensorState, Never>(.idle)
     private var centralManager: BluetoothServiceType
     private var heartRatePeripheral: CBPeripheral?
     private var registry = DiscoveredSensorRegistry()
