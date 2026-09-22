@@ -58,7 +58,7 @@ final class SensorService: NSObject, SensorServiceType {
         centralManager.delegate = self
 
         scanningListSubject
-            .throttle(for: .seconds(configuration.listRefreshInterval), scheduler: RunLoop.main, latest: true)
+            .throttle(for: .seconds(configuration.listRefreshInterval), scheduler: DispatchQueue.main, latest: true)
             .sink { [weak self] sensors in
                 // A throttled emission can land after the user already picked a sensor,
                 // where publishing it would clobber `.connecting`.

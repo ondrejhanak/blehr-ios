@@ -42,7 +42,7 @@ final class HeartRateViewModel: ObservableObject {
 
     private func setupObservation() {
         sensorService.state
-            .receive(on: RunLoop.main)
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] state in
                 self?.state = state
             }
