@@ -6,28 +6,28 @@
 //
 
 import Combine
-import UIKit
+import Foundation
 
 @MainActor
 final class HeartRateViewModel: ObservableObject {
-    private var sensorService: SensorServiceType
+    private let sensorService: SensorServiceType
+    private let settingsOpener: SettingsOpenerType
     private var cancellables = Set<AnyCancellable>()
 
     @Published var state: SensorState = .starting
 
     // MARK: - Lifecycle
 
-    init(sensorService: SensorServiceType) {
+    init(sensorService: SensorServiceType, settingsOpener: SettingsOpenerType) {
         self.sensorService = sensorService
+        self.settingsOpener = settingsOpener
         setupObservation()
     }
 
     // MARK: - Methods
 
     func openSettings() {
-        if let url = URL(string: UIApplication.openSettingsURLString), UIApplication.shared.canOpenURL(url) {
-            UIApplication.shared.open(url)
-        }
+        settingsOpener.open()
     }
 
     func connectSensor(id: DiscoveredSensor.ID) {

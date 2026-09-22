@@ -78,26 +78,26 @@ struct HeartRateView: View {
 #Preview("connected") {
     let info = SensorInfo(id: UUID(), bpm: 123, name: "Preview Sensor", timestamp: .now)
     let service = PreviewSensorService(state: .connected(info))
-    return HeartRateView(viewModel: HeartRateViewModel(sensorService: service))
+    return HeartRateView(viewModel: HeartRateViewModel(sensorService: service, settingsOpener: SystemSettingsOpener()))
 }
 
 #Preview("disabled") {
     let service = PreviewSensorService(state: .disabled)
-    return HeartRateView(viewModel: HeartRateViewModel(sensorService: service))
+    return HeartRateView(viewModel: HeartRateViewModel(sensorService: service, settingsOpener: SystemSettingsOpener()))
 }
 
 #Preview("starting") {
     let service = PreviewSensorService(state: .starting)
-    return HeartRateView(viewModel: HeartRateViewModel(sensorService: service))
+    return HeartRateView(viewModel: HeartRateViewModel(sensorService: service, settingsOpener: SystemSettingsOpener()))
 }
 
 #Preview("scanning - empty") {
     let service = PreviewSensorService(state: .scanning([]))
-    return HeartRateView(viewModel: HeartRateViewModel(sensorService: service))
+    return HeartRateView(viewModel: HeartRateViewModel(sensorService: service, settingsOpener: SystemSettingsOpener()))
 }
 
 #Preview("connecting") {
     let service = PreviewSensorService(state: .connecting)
-    return HeartRateView(viewModel: HeartRateViewModel(sensorService: service))
+    return HeartRateView(viewModel: HeartRateViewModel(sensorService: service, settingsOpener: SystemSettingsOpener()))
 }
 #endif

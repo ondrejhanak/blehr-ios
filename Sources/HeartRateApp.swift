@@ -15,7 +15,7 @@ struct HeartRateApp: App {
             if isProduction {
                 let centralManager = CBCentralManager()
                 let sensorService = SensorService(centralManager: centralManager)
-                let viewModel = HeartRateViewModel(sensorService: sensorService)
+                let viewModel = HeartRateViewModel(sensorService: sensorService, settingsOpener: SystemSettingsOpener())
                 HeartRateView(viewModel: viewModel)
             }
         }
