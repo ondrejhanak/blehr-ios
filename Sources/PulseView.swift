@@ -31,6 +31,8 @@ struct PulseView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     PulseView(info: .init(id: UUID(), bpm: 123, name: "Preview Sensor", timestamp: .now))
 }
+#endif

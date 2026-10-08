@@ -75,29 +75,40 @@ struct HeartRateView: View {
 }
 
 #if DEBUG
-#Preview("connected") {
-    let info = SensorInfo(id: UUID(), bpm: 123, name: "Preview Sensor", timestamp: .now)
-    let service = PreviewSensorService(state: .connected(info))
-    return HeartRateView(viewModel: HeartRateViewModel(sensorService: service, settingsOpener: SystemSettingsOpener()))
-}
-
-#Preview("disabled") {
-    let service = PreviewSensorService(state: .disabled)
-    return HeartRateView(viewModel: HeartRateViewModel(sensorService: service, settingsOpener: SystemSettingsOpener()))
+@MainActor
+private func previewView(_ state: SensorState) -> HeartRateView {
+    HeartRateView(
+        viewModel: HeartRateViewModel(
+            sensorService: PreviewSensorService(state: state),
+            settingsOpener: SystemSettingsOpener()
+        )
+    )
 }
 
 #Preview("starting") {
-    let service = PreviewSensorService(state: .starting)
-    return HeartRateView(viewModel: HeartRateViewModel(sensorService: service, settingsOpener: SystemSettingsOpener()))
+    previewView(.starting)
+}
+
+#Preview("disabled") {
+    previewView(.disabled)
 }
 
 #Preview("scanning - empty") {
-    let service = PreviewSensorService(state: .scanning([]))
-    return HeartRateView(viewModel: HeartRateViewModel(sensorService: service, settingsOpener: SystemSettingsOpener()))
+    previewView(.scanning([]))
+}
+
+#Preview("scanning - sensors") {
+    previewView(.scanning([
+        DiscoveredSensor(id: UUID(), name: "Chest Strap", rssi: -48),
+        DiscoveredSensor(id: UUID(), name: nil, rssi: -71),
+    ]))
 }
 
 #Preview("connecting") {
-    let service = PreviewSensorService(state: .connecting)
-    return HeartRateView(viewModel: HeartRateViewModel(sensorService: service, settingsOpener: SystemSettingsOpener()))
+    previewView(.connecting)
+}
+
+#Preview("connected") {
+    previewView(.connected(SensorInfo(id: UUID(), bpm: 123, name: "Preview Sensor", timestamp: .now)))
 }
 #endif
