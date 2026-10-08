@@ -14,7 +14,11 @@ struct HeartRateApp: App {
         WindowGroup {
             if isProduction {
                 let centralManager = CBCentralManager()
-                let sensorService = SensorService(centralManager: centralManager)
+                let sensorService = SensorService(
+                    centralManager: centralManager,
+                    configuration: .default,
+                    now: Date.init
+                )
                 let viewModel = HeartRateViewModel(sensorService: sensorService, settingsOpener: SystemSettingsOpener())
                 HeartRateView(viewModel: viewModel)
             }

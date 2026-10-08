@@ -48,8 +48,8 @@ final class SensorService: NSObject, SensorServiceType {
 
     init(
         centralManager: BluetoothServiceType,
-        configuration: SensorConfiguration = .default,
-        now: @escaping () -> Date = Date.init
+        configuration: SensorConfiguration,
+        now: @escaping () -> Date
     ) {
         self.centralManager = centralManager
         self.configuration = configuration
