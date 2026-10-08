@@ -5,27 +5,16 @@
 //  Created by Ondrej Hanak on 29.07.2025.
 //
 
-import CoreBluetooth
 import SwiftUI
 
 @main
+@MainActor
 struct HeartRateApp: App {
+    @StateObject private var viewModel = CompositionRoot.makeHeartRateViewModel()
+
     var body: some Scene {
         WindowGroup {
-            if isProduction {
-                let centralManager = CBCentralManager()
-                let sensorService = SensorService(
-                    centralManager: centralManager,
-                    configuration: .default,
-                    now: Date.init
-                )
-                let viewModel = HeartRateViewModel(sensorService: sensorService, settingsOpener: SystemSettingsOpener())
-                HeartRateView(viewModel: viewModel)
-            }
+            HeartRateView(viewModel: viewModel)
         }
-    }
-
-    private var isProduction: Bool {
-        NSClassFromString("XCTestCase") == nil
     }
 }
