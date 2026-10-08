@@ -201,20 +201,3 @@ extension SensorService: CBPeripheralDelegate {
         stateSubject.send(.connected(info))
     }
 }
-
-#if DEBUG
-final class PreviewSensorService: SensorServiceType {
-    private let stateSubject: CurrentValueSubject<SensorState, Never>
-
-    var state: AnyPublisher<SensorState, Never> {
-        stateSubject.eraseToAnyPublisher()
-    }
-
-    init(state: SensorState) {
-        stateSubject = CurrentValueSubject(state)
-    }
-
-    func connect(id: UUID) {}
-    func disconnect() {}
-}
-#endif
