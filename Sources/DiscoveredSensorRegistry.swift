@@ -24,6 +24,10 @@ struct DiscoveredSensorRegistry: Equatable {
             .sorted { ($0.rssi, $0.id.uuidString) > ($1.rssi, $1.id.uuidString) }
     }
 
+    func sensor(for id: UUID) -> DiscoveredSensor? {
+        entries[id]?.sensor
+    }
+
     mutating func removeAll() {
         entries.removeAll()
     }

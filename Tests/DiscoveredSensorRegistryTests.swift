@@ -74,6 +74,15 @@ struct DiscoveredSensorRegistryTests {
     }
 
     @Test
+    func findsARecordedSensorByIdentifier() {
+        var registry = DiscoveredSensorRegistry()
+        let recorded = sensor(-50)
+        registry.record(recorded, at: start)
+        #expect(registry.sensor(for: recorded.id) == recorded)
+        #expect(registry.sensor(for: UUID()) == nil)
+    }
+
+    @Test
     func removeAllClearsTheList() {
         var registry = DiscoveredSensorRegistry()
         registry.record(sensor(-50), at: start)

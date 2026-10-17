@@ -20,10 +20,30 @@ struct DiscoveredSensor: Identifiable, Equatable {
     let rssi: Int
 }
 
+struct SensorFailure: Equatable {
+    enum Reason: Equatable {
+        case couldNotConnect
+    }
+
+    let sensorName: String?
+    let reason: Reason
+
+    var message: String {
+        switch reason {
+        case .couldNotConnect:
+            if let sensorName {
+                return "Could not connect to \(sensorName)."
+            }
+            return "Could not connect to the sensor."
+        }
+    }
+}
+
 enum SensorState: Equatable {
     case starting
     case disabled
     case scanning([DiscoveredSensor])
     case connecting
     case connected(SensorInfo)
+    case failed(SensorFailure)
 }

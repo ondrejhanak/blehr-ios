@@ -100,17 +100,60 @@ struct SensorServiceTests {
     }
 
     @Test
-    func returnsToScanningWhenConnectingFails() {
+    func reportsFailureWhenConnectingFails() async throws {
+        let central = FakeBluetoothCentral()
+        let service = makeService(central: central)
+        let recorder = StateRecorder(service)
+        service.centralDidChangeAvailability(to: true)
+        service.centralDidDiscover(sensor)
+        try await waitForListRefresh()
+        service.connect(id: sensor.id)
+
+        service.centralDidFailToConnect(to: sensor.id)
+
+        #expect(recorder.last == .failed(SensorFailure(sensorName: sensor.name, reason: .couldNotConnect)))
+    }
+
+    @Test
+    func doesNotRescanWhileTheFailureIsShowing() {
+        let central = FakeBluetoothCentral()
+        let service = makeService(central: central)
+        service.centralDidChangeAvailability(to: true)
+        service.connect(id: sensor.id)
+        let countBeforeFailure = central.startScanningCallCount
+
+        service.centralDidFailToConnect(to: sensor.id)
+
+        #expect(central.startScanningCallCount == countBeforeFailure)
+    }
+
+    @Test
+    func resumeScanningRestartsTheScan() {
         let central = FakeBluetoothCentral()
         let service = makeService(central: central)
         let recorder = StateRecorder(service)
         service.centralDidChangeAvailability(to: true)
         service.connect(id: sensor.id)
-
         service.centralDidFailToConnect(to: sensor.id)
+
+        service.resumeScanning()
 
         #expect(recorder.last == .scanning([]))
         #expect(central.isScanning)
+    }
+
+    @Test
+    func namesTheSensorItCouldNotConnectTo() {
+        let central = FakeBluetoothCentral()
+        let service = makeService(central: central)
+        let recorder = StateRecorder(service)
+        service.centralDidChangeAvailability(to: true)
+        service.connect(id: UUID())
+
+        // An identifier the scan never saw cannot be named.
+        service.centralDidFailToConnect(to: UUID())
+
+        #expect(recorder.last == .failed(SensorFailure(sensorName: nil, reason: .couldNotConnect)))
     }
 
     @Test

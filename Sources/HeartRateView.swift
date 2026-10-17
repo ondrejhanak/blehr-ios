@@ -23,6 +23,8 @@ struct HeartRateView: View {
                 scanningView(sensors)
             case .connecting:
                 ProgressView()
+            case let .failed(failure):
+                failedView(failure)
             case let .connected(info):
                 PulseView(info: info)
                 Button("Disconnect") {
@@ -44,6 +46,18 @@ struct HeartRateView: View {
             .multilineTextAlignment(.center)
         Button("Settings") {
             viewModel.openSettings()
+        }
+        .buttonStyle(.borderedProminent)
+    }
+
+    @ViewBuilder
+    private func failedView(_ failure: SensorFailure) -> some View {
+        Text(failure.message)
+            .font(.body)
+            .foregroundColor(.gray)
+            .multilineTextAlignment(.center)
+        Button("Try Again") {
+            viewModel.resumeScanning()
         }
         .buttonStyle(.borderedProminent)
     }
@@ -106,6 +120,10 @@ private func previewView(_ state: SensorState) -> HeartRateView {
 
 #Preview("connecting") {
     previewView(.connecting)
+}
+
+#Preview("failed") {
+    previewView(.failed(SensorFailure(sensorName: "Chest Strap", reason: .couldNotConnect)))
 }
 
 #Preview("connected") {

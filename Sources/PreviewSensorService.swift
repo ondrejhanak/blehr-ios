@@ -23,5 +23,6 @@ final class PreviewSensorService: SensorServiceType {
 
     func connect(id: DiscoveredSensor.ID) {}
     func disconnect() {}
+    func resumeScanning() {}
 }
 #endif

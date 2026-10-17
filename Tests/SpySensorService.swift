@@ -14,6 +14,7 @@ final class SpySensorService: SensorServiceType {
 
     private(set) var connectedIDs: [DiscoveredSensor.ID] = []
     private(set) var disconnectCallCount = 0
+    private(set) var resumeScanningCallCount = 0
 
     var state: AnyPublisher<SensorState, Never> {
         stateSubject.eraseToAnyPublisher()
@@ -33,5 +34,9 @@ final class SpySensorService: SensorServiceType {
 
     func disconnect() {
         disconnectCallCount += 1
+    }
+
+    func resumeScanning() {
+        resumeScanningCallCount += 1
     }
 }

@@ -38,6 +38,10 @@ final class HeartRateViewModel: ObservableObject {
         sensorService.disconnect()
     }
 
+    func resumeScanning() {
+        sensorService.resumeScanning()
+    }
+
     // MARK: - Private
 
     private func setupObservation() {

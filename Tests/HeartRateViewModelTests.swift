@@ -20,6 +20,7 @@ private let allSensorStates: [SensorState] = [
     .scanning([sensor]),
     .connecting,
     .connected(measurement),
+    .failed(SensorFailure(sensorName: "Chest Strap", reason: .couldNotConnect)),
 ]
 
 @MainActor
@@ -90,6 +91,14 @@ struct HeartRateViewModelTests {
         let viewModel = makeViewModel(service: service)
         viewModel.disconnect()
         #expect(service.disconnectCallCount == 1)
+    }
+
+    @Test
+    func resumeScanningForwardsToService() {
+        let service = SpySensorService(state: .starting)
+        let viewModel = makeViewModel(service: service)
+        viewModel.resumeScanning()
+        #expect(service.resumeScanningCallCount == 1)
     }
 
     @Test

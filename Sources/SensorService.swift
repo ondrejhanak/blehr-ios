@@ -14,6 +14,7 @@ protocol SensorServiceType: AnyObject {
 
     func connect(id: DiscoveredSensor.ID)
     func disconnect()
+    func resumeScanning()
 }
 
 struct SensorConfiguration {
@@ -81,6 +82,10 @@ final class SensorService: SensorServiceType {
         central.disconnect(id: connectedSensorID)
     }
 
+    func resumeScanning() {
+        scan()
+    }
+
     // MARK: - Private
 
     private func scan() {
@@ -133,7 +138,8 @@ extension SensorService: BluetoothCentralDelegate {
 
     func centralDidFailToConnect(to id: DiscoveredSensor.ID) {
         connectedSensorID = nil
-        scan()
+        // Rescanning here would overwrite this state before any subscriber received it.
+        stateSubject.send(.failed(SensorFailure(sensorName: registry.sensor(for: id)?.name, reason: .couldNotConnect)))
     }
 
     func centralDidDisconnect(from id: DiscoveredSensor.ID) {
