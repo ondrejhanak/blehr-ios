@@ -5,8 +5,8 @@
 //  Created by Ondrej Hanak on 31.07.2025.
 //
 
-import CoreBluetooth
 import Combine
+import Foundation
 
 protocol SensorServiceType: AnyObject {
     /// Current state, replayed to new subscribers.
@@ -25,17 +25,15 @@ struct SensorConfiguration {
     static let `default`: Self = .init()
 }
 
-final class SensorService: NSObject, SensorServiceType {
+final class SensorService: SensorServiceType {
+    private let central: BluetoothCentralType
     private let configuration: SensorConfiguration
     private let now: () -> Date
     private var cancellables = Set<AnyCancellable>()
-    private let heartRateServiceUUID = CBUUID(string: "0x180D")
-    private let heartRateMeasurementUUID = CBUUID(string: "0x2A37")
     private let scanningListSubject = PassthroughSubject<[DiscoveredSensor], Never>()
     private let stateSubject = CurrentValueSubject<SensorState, Never>(.starting)
-    private var centralManager: BluetoothServiceType
-    private var heartRatePeripheral: CBPeripheral?
     private var registry = DiscoveredSensorRegistry()
+    private var connectedSensorID: DiscoveredSensor.ID?
     private var isPoweredOn = false
     private var isScanning = false
     private var pruningCancellable: AnyCancellable?
@@ -47,15 +45,13 @@ final class SensorService: NSObject, SensorServiceType {
     // MARK: - Lifecycle
 
     init(
-        centralManager: BluetoothServiceType,
+        central: BluetoothCentralType,
         configuration: SensorConfiguration,
         now: @escaping () -> Date
     ) {
-        self.centralManager = centralManager
+        self.central = central
         self.configuration = configuration
         self.now = now
-        super.init()
-        centralManager.delegate = self
 
         scanningListSubject
             .throttle(for: .seconds(configuration.listRefreshInterval), scheduler: DispatchQueue.main, latest: true)
@@ -66,27 +62,23 @@ final class SensorService: NSObject, SensorServiceType {
                 self.stateSubject.send(.scanning(sensors))
             }
             .store(in: &cancellables)
+
+        central.delegate = self
     }
 
     // MARK: - Methods
 
     func connect(id: DiscoveredSensor.ID) {
-        // Resolve the peripheral before tearing down the scan, so a failed lookup can
-        // leave discovery running.
-        guard let peripheral = centralManager.retrievePeripherals(withIdentifiers: [id]).first else {
-            scan()
-            return
-        }
         stopScanning()
+        // Sent before asking the central, which can report failure synchronously.
         stateSubject.send(.connecting)
-        peripheral.delegate = self
-        heartRatePeripheral = peripheral
-        centralManager.connect(peripheral, options: nil)
+        connectedSensorID = id
+        central.connect(id: id)
     }
 
     func disconnect() {
-        guard let heartRatePeripheral else { return }
-        centralManager.cancelPeripheralConnection(heartRatePeripheral)
+        guard let connectedSensorID else { return }
+        central.disconnect(id: connectedSensorID)
     }
 
     // MARK: - Private
@@ -101,7 +93,7 @@ final class SensorService: NSObject, SensorServiceType {
         isScanning = true
         // Entering the scanning state is not a list refresh, so it skips the throttle.
         stateSubject.send(.scanning([]))
-        centralManager.scanForPeripherals(withServices: [heartRateServiceUUID], options: [CBCentralManagerScanOptionAllowDuplicatesKey: true])
+        central.startScanning()
         pruningCancellable = Timer.publish(every: configuration.discoveryTimeout, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
@@ -113,89 +105,48 @@ final class SensorService: NSObject, SensorServiceType {
         isScanning = false
         pruningCancellable?.cancel()
         pruningCancellable = nil
-        centralManager.stopScan()
+        central.stopScanning()
     }
 
     private func pruneStaleSensors() {
         guard registry.prune(olderThan: configuration.discoveryTimeout, at: now()) else { return }
         scanningListSubject.send(registry.sensors)
     }
-
-    private func releasePeripheral() {
-        // Clearing the delegate stops late notifications from the old peripheral.
-        heartRatePeripheral?.delegate = nil
-        heartRatePeripheral = nil
-    }
 }
 
-extension SensorService: CBCentralManagerDelegate {
-    func centralManagerDidUpdateState(_ central: CBCentralManager) {
-        isPoweredOn = central.state == .poweredOn
-        guard isPoweredOn else {
+extension SensorService: BluetoothCentralDelegate {
+    func centralDidChangeAvailability(to isAvailable: Bool) {
+        isPoweredOn = isAvailable
+        guard isAvailable else {
             stopScanning()
-            releasePeripheral()
+            connectedSensorID = nil
             stateSubject.send(.disabled)
             return
         }
         scan()
     }
 
-    func centralManager(
-        _ central: CBCentralManager,
-        didDisconnectPeripheral peripheral: CBPeripheral,
-        error: (any Error)?
-    ) {
-        releasePeripheral()
-        scan()
-    }
-
-    func centralManager(
-        _ central: CBCentralManager,
-        didDiscover peripheral: CBPeripheral,
-        advertisementData: [String : Any],
-        rssi RSSI: NSNumber
-    ) {
-        guard let isConnectable = advertisementData[CBAdvertisementDataIsConnectable] as? Bool, isConnectable else {
-            return
-        }
-        let sensor = DiscoveredSensor(
-            id: peripheral.identifier,
-            name: peripheral.name,
-            rssi: RSSI.intValue
-        )
+    func centralDidDiscover(_ sensor: DiscoveredSensor) {
         guard registry.record(sensor, at: now()) else { return }
         scanningListSubject.send(registry.sensors)
     }
 
-    func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
-        peripheral.discoverServices([heartRateServiceUUID])
-    }
-
-    func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: (any Error)?) {
-        releasePeripheral()
+    func centralDidFailToConnect(to id: DiscoveredSensor.ID) {
+        connectedSensorID = nil
         scan()
     }
-}
 
-extension SensorService: CBPeripheralDelegate {
-    func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
-        guard let services = peripheral.services else { return }
-        guard let service = services.first(where: { $0.uuid == heartRateServiceUUID }) else { return }
-        peripheral.discoverCharacteristics([heartRateMeasurementUUID], for: service)
+    func centralDidDisconnect(from id: DiscoveredSensor.ID) {
+        connectedSensorID = nil
+        scan()
     }
 
-    func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
-        guard let characteristics = service.characteristics else { return }
-        guard let characteristic = characteristics.first(where: { $0.uuid == heartRateMeasurementUUID }) else { return }
-        peripheral.setNotifyValue(true, for: characteristic)
-    }
-
-    func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
-        guard let data = characteristic.value, let bpm = HeartRateParser.parse(data) else { return }
+    func centralDidReceiveMeasurement(_ data: Data, from id: DiscoveredSensor.ID, name: String?) {
+        guard let bpm = HeartRateParser.parse(data) else { return }
         let info = SensorInfo(
-            id: peripheral.identifier,
+            id: id,
             bpm: bpm,
-            name: peripheral.name,
+            name: name,
             timestamp: now()
         )
         stateSubject.send(.connected(info))

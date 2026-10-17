@@ -5,7 +5,6 @@
 //  Created by Ondrej Hanak on 08.10.2026.
 //
 
-import CoreBluetooth
 import Foundation
 
 @MainActor
@@ -19,20 +18,20 @@ enum CompositionRoot {
 
     private static func makeSensorService() -> SensorServiceType {
         SensorService(
-            centralManager: makeBluetoothService(),
+            central: makeBluetoothCentral(),
             configuration: .default,
             now: Date.init
         )
     }
 
-    private static func makeBluetoothService() -> BluetoothServiceType {
+    private static func makeBluetoothCentral() -> BluetoothCentralType {
         #if DEBUG
-        // Creating a CBCentralManager prompts for Bluetooth permission, which is unwanted in
+        // Creating a real central prompts for Bluetooth permission, which is unwanted in
         // the host app that only backs the test bundle.
         if AppEnvironment.isRunningTests {
-            return InertBluetoothService()
+            return InertBluetoothCentral()
         }
         #endif
-        return CBCentralManager()
+        return CoreBluetoothCentral()
     }
 }
