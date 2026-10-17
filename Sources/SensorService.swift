@@ -56,8 +56,8 @@ final class SensorService: SensorServiceType {
         scanningListSubject
             .throttle(for: .seconds(configuration.listRefreshInterval), scheduler: DispatchQueue.main, latest: true)
             .sink { [weak self] sensors in
-                // A throttled emission can land after the user already picked a sensor,
-                // where publishing it would clobber `.connecting`.
+                // An advertisement already in flight when the scan stopped would otherwise
+                // publish a list over `.connecting`.
                 guard let self, self.isScanning else { return }
                 self.stateSubject.send(.scanning(sensors))
             }
