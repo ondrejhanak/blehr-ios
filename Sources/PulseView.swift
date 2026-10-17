@@ -22,7 +22,7 @@ struct PulseView: View {
                 .monospacedDigit()
         }
         .foregroundColor(.red)
-        .onChange(of: info.timestamp) { _ in
+        .onChange(of: info.timestamp) {
             heartbeatPulse.toggle()
         }
         Text(info.name ?? info.id.uuidString)
