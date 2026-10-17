@@ -167,6 +167,19 @@ struct SensorServiceTests {
     }
 
     @Test
+    func ignoresMeasurementsFromAnotherSensor() {
+        let central = FakeBluetoothCentral()
+        let service = makeService(central: central)
+        let recorder = StateRecorder(service)
+        service.centralDidChangeAvailability(to: true)
+        service.connect(id: sensor.id)
+
+        service.centralDidReceiveMeasurement(measurement, from: UUID(), name: "Someone else's strap")
+
+        #expect(recorder.last == .connecting)
+    }
+
+    @Test
     func ignoresMalformedMeasurements() {
         let central = FakeBluetoothCentral()
         let service = makeService(central: central)

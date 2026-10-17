@@ -44,6 +44,7 @@ final class CoreBluetoothCentral: NSObject, BluetoothCentralType {
             delegate?.centralDidFailToConnect(to: id)
             return
         }
+        releasePeripheral()
         peripheral.delegate = self
         connectedPeripheral = peripheral
         manager.connect(peripheral, options: nil)

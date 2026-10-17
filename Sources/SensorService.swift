@@ -142,7 +142,7 @@ extension SensorService: BluetoothCentralDelegate {
     }
 
     func centralDidReceiveMeasurement(_ data: Data, from id: DiscoveredSensor.ID, name: String?) {
-        guard let bpm = HeartRateParser.parse(data) else { return }
+        guard id == connectedSensorID, let bpm = HeartRateParser.parse(data) else { return }
         let info = SensorInfo(
             id: id,
             bpm: bpm,
