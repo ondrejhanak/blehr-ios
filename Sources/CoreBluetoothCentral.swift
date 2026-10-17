@@ -20,7 +20,7 @@ final class CoreBluetoothCentral: NSObject, BluetoothCentralType {
     // MARK: - Lifecycle
 
     override init() {
-        // An explicit main queue, rather than relying on what a nil queue implies.
+        // Everything downstream assumes these callbacks arrive on the main queue.
         manager = CBCentralManager(delegate: nil, queue: .main)
         super.init()
         manager.delegate = self

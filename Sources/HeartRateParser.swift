@@ -16,7 +16,7 @@ struct HeartRateParser {
         guard let flag = byteArray.first else { return nil }
         if flag & 0x01 == 0 {
             guard byteArray.count >= 2 else { return nil }
-            return Int(byteArray[1]) // UInt8
+            return Int(byteArray[1])
         } else {
             guard byteArray.count >= 3 else { return nil }
             return Int(UInt16(byteArray[1]) | UInt16(byteArray[2]) << 8) // UInt16 little endian

@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// What the sensor service asks of the radio, free of CoreBluetooth types so it can be faked.
+/// What the sensor service asks of the radio, in terms a fake can satisfy.
 protocol BluetoothCentralType: AnyObject {
     var delegate: BluetoothCentralDelegate? { get set }
 
@@ -17,8 +17,8 @@ protocol BluetoothCentralType: AnyObject {
     func disconnect(id: UUID)
 }
 
-/// What the radio reports back. Service and characteristic discovery stay behind the boundary,
-/// so only the events the state machine acts on appear here.
+/// What the radio reports back: only events the state machine acts on, which leaves service
+/// and characteristic discovery behind the boundary.
 protocol BluetoothCentralDelegate: AnyObject {
     func centralDidChangeAvailability(to isAvailable: Bool)
     func centralDidDiscover(_ sensor: DiscoveredSensor)
