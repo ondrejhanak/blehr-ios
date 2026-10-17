@@ -17,7 +17,7 @@ struct SensorServiceTests {
     private let measurement = Data([0x00, 0x48])
 
     private func makeService(
-        central: FakeBluetoothCentral,
+        central: SpyBluetoothCentral,
         now: @escaping () -> Date = { Date(timeIntervalSince1970: 1_000) }
     ) -> SensorService {
         var configuration = SensorConfiguration.default
@@ -34,7 +34,7 @@ struct SensorServiceTests {
 
     @Test
     func startsScanningWhenTheCentralBecomesAvailable() {
-        let central = FakeBluetoothCentral()
+        let central = SpyBluetoothCentral()
         let service = makeService(central: central)
         let recorder = StateRecorder(service)
 
@@ -46,7 +46,7 @@ struct SensorServiceTests {
 
     @Test
     func stopsScanningAndReportsDisabledWhenAvailabilityIsLost() {
-        let central = FakeBluetoothCentral()
+        let central = SpyBluetoothCentral()
         let service = makeService(central: central)
         let recorder = StateRecorder(service)
         service.centralDidChangeAvailability(to: true)
@@ -59,7 +59,7 @@ struct SensorServiceTests {
 
     @Test
     func doesNotScanWhileTheCentralIsUnavailable() {
-        let central = FakeBluetoothCentral()
+        let central = SpyBluetoothCentral()
         let service = makeService(central: central)
 
         // A disconnect can arrive before the central reports that it lost power.
@@ -70,7 +70,7 @@ struct SensorServiceTests {
 
     @Test
     func doesNotScanWhenADisconnectFollowsPowerLoss() {
-        let central = FakeBluetoothCentral()
+        let central = SpyBluetoothCentral()
         let service = makeService(central: central)
         let recorder = StateRecorder(service)
         service.centralDidChangeAvailability(to: true)
@@ -87,7 +87,7 @@ struct SensorServiceTests {
 
     @Test
     func connectingStopsTheScanAndReportsConnecting() {
-        let central = FakeBluetoothCentral()
+        let central = SpyBluetoothCentral()
         let service = makeService(central: central)
         let recorder = StateRecorder(service)
         service.centralDidChangeAvailability(to: true)
@@ -101,7 +101,7 @@ struct SensorServiceTests {
 
     @Test
     func reportsFailureWhenConnectingFails() async throws {
-        let central = FakeBluetoothCentral()
+        let central = SpyBluetoothCentral()
         let service = makeService(central: central)
         let recorder = StateRecorder(service)
         service.centralDidChangeAvailability(to: true)
@@ -116,7 +116,7 @@ struct SensorServiceTests {
 
     @Test
     func doesNotRescanWhileTheFailureIsShowing() {
-        let central = FakeBluetoothCentral()
+        let central = SpyBluetoothCentral()
         let service = makeService(central: central)
         service.centralDidChangeAvailability(to: true)
         service.connect(id: sensor.id)
@@ -129,7 +129,7 @@ struct SensorServiceTests {
 
     @Test
     func resumeScanningRestartsTheScan() {
-        let central = FakeBluetoothCentral()
+        let central = SpyBluetoothCentral()
         let service = makeService(central: central)
         let recorder = StateRecorder(service)
         service.centralDidChangeAvailability(to: true)
@@ -144,7 +144,7 @@ struct SensorServiceTests {
 
     @Test
     func namesTheSensorItCouldNotConnectTo() {
-        let central = FakeBluetoothCentral()
+        let central = SpyBluetoothCentral()
         let service = makeService(central: central)
         let recorder = StateRecorder(service)
         service.centralDidChangeAvailability(to: true)
@@ -158,7 +158,7 @@ struct SensorServiceTests {
 
     @Test
     func returnsToScanningAfterDisconnecting() {
-        let central = FakeBluetoothCentral()
+        let central = SpyBluetoothCentral()
         let service = makeService(central: central)
         let recorder = StateRecorder(service)
         service.centralDidChangeAvailability(to: true)
@@ -172,7 +172,7 @@ struct SensorServiceTests {
 
     @Test
     func disconnectAsksTheCentralForTheConnectedSensor() {
-        let central = FakeBluetoothCentral()
+        let central = SpyBluetoothCentral()
         let service = makeService(central: central)
         service.centralDidChangeAvailability(to: true)
         service.connect(id: sensor.id)
@@ -184,7 +184,7 @@ struct SensorServiceTests {
 
     @Test
     func disconnectDoesNothingWithoutAConnection() {
-        let central = FakeBluetoothCentral()
+        let central = SpyBluetoothCentral()
         let service = makeService(central: central)
         service.centralDidChangeAvailability(to: true)
 
@@ -197,7 +197,7 @@ struct SensorServiceTests {
 
     @Test
     func publishesParsedMeasurements() {
-        let central = FakeBluetoothCentral()
+        let central = SpyBluetoothCentral()
         let timestamp = Date(timeIntervalSince1970: 2_000)
         let service = makeService(central: central, now: { timestamp })
         let recorder = StateRecorder(service)
@@ -211,7 +211,7 @@ struct SensorServiceTests {
 
     @Test
     func ignoresMeasurementsFromAnotherSensor() {
-        let central = FakeBluetoothCentral()
+        let central = SpyBluetoothCentral()
         let service = makeService(central: central)
         let recorder = StateRecorder(service)
         service.centralDidChangeAvailability(to: true)
@@ -224,7 +224,7 @@ struct SensorServiceTests {
 
     @Test
     func ignoresMalformedMeasurements() {
-        let central = FakeBluetoothCentral()
+        let central = SpyBluetoothCentral()
         let service = makeService(central: central)
         let recorder = StateRecorder(service)
         service.centralDidChangeAvailability(to: true)
@@ -240,7 +240,7 @@ struct SensorServiceTests {
 
     @Test
     func publishesDiscoveredSensors() async throws {
-        let central = FakeBluetoothCentral()
+        let central = SpyBluetoothCentral()
         let service = makeService(central: central)
         let recorder = StateRecorder(service)
         service.centralDidChangeAvailability(to: true)
@@ -253,7 +253,7 @@ struct SensorServiceTests {
 
     @Test
     func aLateDiscoveryDoesNotOverwriteConnecting() async throws {
-        let central = FakeBluetoothCentral()
+        let central = SpyBluetoothCentral()
         let service = makeService(central: central)
         let recorder = StateRecorder(service)
         service.centralDidChangeAvailability(to: true)

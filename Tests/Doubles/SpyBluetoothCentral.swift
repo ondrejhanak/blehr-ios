@@ -1,5 +1,5 @@
 //
-//  FakeBluetoothCentral.swift
+//  SpyBluetoothCentral.swift
 //  tests
 //
 //  Created by Ondrej Hanak on 17.10.2026.
@@ -8,7 +8,7 @@
 import Foundation
 @testable import BLE_HR
 
-final class FakeBluetoothCentral: BluetoothCentralType {
+final class SpyBluetoothCentral: BluetoothCentralType {
     weak var delegate: BluetoothCentralDelegate?
 
     private(set) var isScanning = false
